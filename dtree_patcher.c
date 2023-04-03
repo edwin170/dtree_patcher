@@ -3,11 +3,44 @@
 * gcc dtree_patcher.c -o dtree_patcher
 */
 
+#if defined(__linux__) || defined(__gnu_linux__)
+    #define _GNU_SOURCE
+#endif
+
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define GET_OFFSET(dtree_len, x) (x - (uintptr_t) dtree_buf)
+
+char* key = NULL;
+
+const char* dict[][2] = {
+    {"s", "\x00\x01"},
+    {"d", "\x40\x00"},
+    {"a", "\x80\x00"},
+    {"i", "\x20\x00"},
+    {"x", "\x00\x01"},
+    {"n", "\x00\x02"},
+    {"h", "\x40\x01"},
+    {"p", "\xC0\x00"},
+    {"b", "\x10\x00"},
+    {"r", "\x04\x00"},
+    {"D", "\x80\x02"},
+    {"0", "\x00\x00"}
+};
+
+const char* checkRole(const char* key) {
+    for (int i = 0; i < sizeof(dict)/sizeof(dict[0]); i++) {
+        if (strcmp(dict[i][0], key) == 0) {
+            printf("found the role %s\n", dict[i][0]);
+            return dict[i][1];
+        }
+    }
+    printf("it did'nt find the role");
+    exit(-1);
+} 
 
 void* memstr(const void* mem, size_t size, const char* str) {
     return (void*) memmem(mem, size, str, strlen(str));
@@ -76,7 +109,7 @@ int no_effaceable_patch (FILE *fp,size_t dtree_len,void* dtree_buf) {
     return 1;
 }
 
-int preboot_role_8002_patch (FILE *fp,size_t dtree_len,void* dtree_buf) {
+int preboot_role_8002_patch (FILE *fp,size_t dtree_len,void* dtree_buf, const char* role) {
     printf("preboot_role_8002_patch:\n");
     void* fstab_loc = memstr(dtree_buf, dtree_len, "fstab");
     if(!fstab_loc) {
@@ -101,13 +134,13 @@ int preboot_role_8002_patch (FILE *fp,size_t dtree_len,void* dtree_buf) {
         return -1;
     }
     printf("Found Preboot role at %p\n",GET_OFFSET(dtree_len, preboot_role));
-    printf("Changing Preboot role to 0x8002\n");
-    memcpy(preboot_role,"\x80\x02",0x2);
+    printf("Changing Preboot role to %s\n", role);
+    memcpy(preboot_role, role, 0x2);
     return 1;
 
 }
 
-int data_role_0_patch (FILE *fp,size_t dtree_len,void* dtree_buf) {
+int data_role_0_patch (FILE *fp,size_t dtree_len,void* dtree_buf, const char* role) {
     printf("data_role_0_patch:\n");
     void* fstab_loc = memstr(dtree_buf, dtree_len, "fstab");
     if(!fstab_loc) {
@@ -132,8 +165,8 @@ int data_role_0_patch (FILE *fp,size_t dtree_len,void* dtree_buf) {
         return -1;
     }
     printf("Found data role at %p\n",GET_OFFSET(dtree_len, data_role));
-    printf("Changing data role to 0x00\n");
-    memcpy(data_role,"\x00",0x1);
+    printf("Changing data role to %s\n", role);
+    memcpy(data_role, role, 0x2);
     return 1;
     
 }
@@ -177,11 +210,13 @@ int main(int argc, char **argv){
     if(argc < 4){
         printf("Usage: %s <dtree_in> <dtree_out> <args>\n",argv[0]);
         printf("\t-n\t\tAdd no-effaceable-storage property\n");
-        printf("\t-d\t\tChange data volume role to 0x0\n");
-        printf("\t-p\t\tChange Preboot volume role to 'D' (0x8002)\n");
+        printf("\t-d\t\tChange data volume role to , -d r (which r is the role that i want to replace)\n");
+        printf("\t-p\t\tChange Preboot volume role to , -p s (which s is the role that i want to replace)\n");
         printf("\t-o\t\tChange System mount as a ro to rw \n");
         return 0;
     }
+
+    const char* role = NULL;
     
     void* dtree_buf;
     size_t dtree_len;
@@ -218,10 +253,14 @@ int main(int argc, char **argv){
             no_effaceable_patch(fp,dtree_len,dtree_buf);
         }
         if(strcmp(argv[i], "-d") == 0) {
-            data_role_0_patch(fp,dtree_len,dtree_buf);
+            key = argv[i+1];
+            role = checkRole(key);
+            data_role_0_patch(fp,dtree_len,dtree_buf, role);
         }
         if(strcmp(argv[i], "-p") == 0) {
-            preboot_role_8002_patch(fp,dtree_len,dtree_buf);
+            key = argv[i+1];
+            role = checkRole(key);
+            preboot_role_8002_patch(fp,dtree_len,dtree_buf, role);
         }
         if(strcmp(argv[i], "-o") == 0) {
             mount_as_rw(fp,dtree_len,dtree_buf);

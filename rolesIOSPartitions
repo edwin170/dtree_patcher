@@ -1,0 +1,27 @@
+system = s, on (apfs) = 1  on (dtree) = \x01\x00
+
+Data = d, on (apfs) = 40  on (dtree) = \x40\x00
+
+Baseband Data, = a on (apfs) = 80  on (dtree) = \x80\x00
+
+avaiable Logs, = i on (apfs) = 20  on (dtree) = \x20\x00 
+
+xARTS = x, on (apfs) = 100 on (dtree) = \x00\x01
+
+avaiable Scratch, = n on (apfs) = 200  on (dtree) = \x00\x02
+
+Hardward = h, on (apfs) = 140  on (dtree) = \x40\x01
+
+Update = p, on (apfs) = c0  on (dtree) = \xC0\x00
+
+Preboot = b, (?ios13)  on (apfs) = 10  on (dtree) = \x10\x00
+
+Recovery = '\x01' 
+
+more avaiable = r, D, 0
+
+Recovery = 0, on (apfs) = 0  on (dtree) = \x00\x00
+
+Logs = r, on (apfs) = 4  on (dtreeMaybe) = \x04\x00 
+ 
+D = on (apfs) = 280  on (dtreeMaybe) = \x80\x02
